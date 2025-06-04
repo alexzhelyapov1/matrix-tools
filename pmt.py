@@ -5,6 +5,7 @@ import os
 file_paths = [
     'pom.xml',
 
+    'src/test/java/com/azapps/matrixapp/model/MatrixTest.java',
     'src/main/java/com/azapps/matrixapp/model/MatrixOperationException.java',
     'src/main/java/com/azapps/matrixapp/model/Matrix.java',
     'src/main/java/com/azapps/matrixapp/controller/MainViewController.java',

@@ -73,10 +73,15 @@
             </HBox>
 
             <Label text="Результат:" styleClass="section-label" style="-fx-padding: 10 0 0 0;"/>
-            <ScrollPane fx:id="resultScrollPane" fitToWidth="true" fitToHeight="true" VBox.vgrow="ALWAYS"
-                        minHeight="100" prefHeight="200">
+            <ScrollPane fx:id="resultMatrixScrollPane" fitToWidth="true" fitToHeight="true" VBox.vgrow="ALWAYS"
+                        minHeight="100" prefHeight="200" styleClass="scroll-pane"> <!-- Добавим стиль, если нужно -->
                 <content>
-                    <Label fx:id="resultLabel" text="" wrapText="true" styleClass="result-text"/>
+                    <GridPane fx:id="resultMatrixGrid" hgap="5" vgap="5" alignment="CENTER">
+                        <padding>
+                            <Insets top="10" right="10" bottom="10" left="10"/>
+                        </padding>
+                        <!-- Ячейки для вывода результата будут добавляться сюда программно -->
+                    </GridPane>
                 </content>
             </ScrollPane>
 

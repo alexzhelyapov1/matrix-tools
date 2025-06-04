@@ -99,3 +99,18 @@
 .scroll-pane .viewport {
     -fx-background-color: transparent;
 }
+
+.result-matrix-cell {
+    -fx-background-color: #f0f0f0; /* Слегка серый фон для нередактируемых полей */
+    -fx-border-color: #d0d0d0;
+    -fx-border-radius: 3px;
+    /* Можно убрать эффект фокуса, так как они нередактируемы */
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.error-label {
+    -fx-text-fill: red;
+    -fx-font-style: italic;
+    -fx-padding: 10px;
+}

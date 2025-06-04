@@ -7,6 +7,7 @@ import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -19,6 +20,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority; // Для HBox.setHgrow
 import javafx.scene.layout.Region;   // Для Region
 import javafx.util.Duration;
+import javafx.scene.Node;
+import javafx.geometry.HPos;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,8 +50,8 @@ public class MainViewController {
     private TranslateTransition transposeButtonAnimator; // Аниматор для кнопки
 
     // --- Элементы для вывода результата ---
-    @FXML private ScrollPane resultScrollPane;
-    @FXML private Label resultLabel;
+    @FXML private ScrollPane resultMatrixScrollPane; // Новая ссылка на ScrollPane для результата
+    @FXML private GridPane resultMatrixGrid;        // Новая ссылка на GridPane для результата
 
     private List<List<TextField>> matrixTextFields;
 
@@ -71,32 +74,14 @@ public class MainViewController {
         });
         
         matrixTextFields = new ArrayList<>();
-
-        // Инициализируем аниматор
         transposeButtonAnimator = new TranslateTransition(Duration.millis(300), transposeButton);
-        transposeButtonAnimator.setInterpolator(Interpolator.EASE_BOTH); // Плавное начало и конец
+        transposeButtonAnimator.setInterpolator(Interpolator.EASE_BOTH);
 
-        // Чтобы buttonsContainer был корректно измерен перед первым вызовом updateButtonStates
-        // и чтобы кнопки получили начальные размеры
-        Platform.runLater(() -> {
-            // Устанавливаем начальные/предпочтительные размеры для кнопок,
-            // чтобы они не растягивались изначально, если HBox будет их растягивать.
-            // Можно также задать это в FXML через prefWidth/maxWidth или CSS.
-            // Здесь мы делаем так, чтобы они занимали половину места, если обе видны
-            // или фиксированный размер.
-            // Для нашего случая, они будут делить место, если обе видны.
-            // Если только одна, она будет своего размера.
-            
-            // Важно! Сначала вызвать updateMatrixGridAndButtons, чтобы кнопки были созданы
-            // и добавлены на сцену, затем уже можно получить их размеры.
-            updateMatrixGridAndButtons();
-        });
+        Platform.runLater(this::updateMatrixGridAndButtons);
     }
 
     private void updateMatrixGridAndButtons() {
         updateMatrixGrid();
-        // Небольшая задержка, чтобы дать JavaFX время на первичную компоновку
-        // перед тем как мы будем опираться на размеры кнопок/контейнера.
         Platform.runLater(this::updateButtonStates);
     }
 
@@ -112,11 +97,9 @@ public class MainViewController {
                 try {
                     int val = Integer.parseInt(newValue);
                     if (val > max) spinner.getEditor().setText(String.valueOf(max));
-                    // Не форсируем min сразу, чтобы пользователь мог ввести, например, "0" для "10"
                 } catch (NumberFormatException e) { /* игнор */ }
             }
         });
-
         spinner.getEditor().focusedProperty().addListener((observable, oldValue, lostFocus) -> {
             if (lostFocus) commitSpinnerValue(spinner);
         });
@@ -126,64 +109,51 @@ public class MainViewController {
     private void commitSpinnerValue(Spinner<Integer> spinner) {
         try {
             String text = spinner.getEditor().getText();
-            
-            // Получаем конкретную фабрику значений
             SpinnerValueFactory.IntegerSpinnerValueFactory valueFactory = null;
             if (spinner.getValueFactory() instanceof SpinnerValueFactory.IntegerSpinnerValueFactory) {
                 valueFactory = (SpinnerValueFactory.IntegerSpinnerValueFactory) spinner.getValueFactory();
             } else {
-                // Если это не IntegerSpinnerValueFactory, то наша логика min/max не сработает.
-                // В этом случае можно просто попытаться установить значение, если оно парсится.
-                // Или выбросить ошибку/залогировать.
-                // Для нашего приложения мы ожидаем IntegerSpinnerValueFactory.
                 if (!text.isEmpty()) spinner.getValueFactory().setValue(Integer.parseInt(text));
-                else spinner.getValueFactory().setValue(spinner.getValue()); // Восстановить, если пусто
+                else spinner.getValueFactory().setValue(spinner.getValue());
                 return;
             }
 
-
             if (text == null || text.isEmpty()) {
-                // Если поле пустое, устанавливаем минимальное значение
                 spinner.getValueFactory().setValue(valueFactory.getMin()); 
                 return;
             }
             
             int value = Integer.parseInt(text);
             
-            if (value < valueFactory.getMin()) {
-                value = valueFactory.getMin();
-            } else if (value > valueFactory.getMax()) {
-                value = valueFactory.getMax();
-            }
+            if (value < valueFactory.getMin()) value = valueFactory.getMin();
+            else if (value > valueFactory.getMax()) value = valueFactory.getMax();
             spinner.getValueFactory().setValue(value);
         } catch (NumberFormatException e) {
-            // Если значение невалидно (например, не число), восстанавливаем предыдущее валидное значение
             spinner.getValueFactory().setValue(spinner.getValue());
         } catch (ClassCastException e) {
-            // Этого не должно случиться, если мы используем IntegerSpinnerValueFactory,
-            // но проверка instanceof выше должна это предотвратить.
             System.err.println("Неожиданная ошибка приведения типа SpinnerValueFactory: " + e.getMessage());
-            spinner.getValueFactory().setValue(spinner.getValue()); // Восстановить
+            spinner.getValueFactory().setValue(spinner.getValue());
         }
     }
 
     private void updateMatrixGrid() {
         matrixInputGrid.getChildren().clear();
-        matrixTextFields.clear();
+        if (matrixTextFields != null) matrixTextFields.clear();
+        else matrixTextFields = new ArrayList<>();
 
-        int rows = rowsSpinner.getValue();
-        int cols = colsSpinner.getValue();
+        int currentRows = rowsSpinner.getValue();
+        int currentCols = colsSpinner.getValue();
 
-        for (int i = 0; i < rows; i++) {
+        for (int i = 0; i < currentRows; i++) {
             List<TextField> rowFields = new ArrayList<>();
-            for (int j = 0; j < cols; j++) {
+            for (int j = 0; j < currentCols; j++) {
                 TextField textField = new TextField();
                 textField.setPromptText("0");
-                textField.setPrefWidth(60); // Немного увеличим
-                textField.setPrefHeight(35); // Явно зададим высоту, можно и через CSS
+                textField.setPrefWidth(60);
+                textField.setPrefHeight(35);
                 textField.setAlignment(Pos.CENTER);
                 textField.textProperty().addListener((obs, oldValue, newValue) -> {
-                    if (!newValue.matches("-?((\\d*\\.?\\d*)|(\\d+\\.?))")) { // Улучшенная регулярка для чисел
+                    if (!newValue.matches("-?((\\d*\\.?\\d*)|(\\d+\\.?))")) {
                         textField.setText(oldValue);
                     }
                 });
@@ -192,24 +162,49 @@ public class MainViewController {
             }
             matrixTextFields.add(rowFields);
         }
-        resultLabel.setText("");
+        initializeOrUpdateResultMatrixGrid(currentRows, currentCols);
     }
 
+    private void initializeOrUpdateResultMatrixGrid(int rows, int cols) {
+        if (resultMatrixGrid == null) return;
+        resultMatrixGrid.getChildren().clear();
+        for (int i = 0; i < cols; i++) {
+            for (int j = 0; j < rows; j++) {
+                TextField resultField = new TextField();
+                resultField.setPromptText("-"); 
+                resultField.setEditable(false);
+                resultField.setFocusTraversable(false);
+                resultField.getStyleClass().add("result-matrix-cell");
+                resultField.setPrefWidth(60); 
+                resultField.setPrefHeight(35);
+                resultField.setAlignment(Pos.CENTER);
+                resultMatrixGrid.add(resultField, j, i);
+            }
+        }
+    }
+
+    // Метод clearResultMatrixGrid() был удален, т.к. его функциональность
+    // покрывается getChildren().clear() в других методах.
+
     private void updateButtonStates() {
-        if (buttonsContainer.getWidth() == 0) {
+        if (buttonsContainer.getWidth() == 0 && buttonsContainer.isVisible()) { 
+            // Добавил isVisible(), чтобы не пытаться обновить, если контейнер скрыт при инициализации
+            Platform.runLater(this::updateButtonStates); // Попробовать обновить позже, если ширина 0
             return;
         }
+        if (buttonsContainer.getWidth() == 0 && !buttonsContainer.isVisible()) {
+            return; // Если невидимый и ширина 0, ничего не делаем
+        }
 
-        final int rows = rowsSpinner.getValue(); // final для лямбд
-        final int cols = colsSpinner.getValue(); // final для лямбд
+
+        final int rows = rowsSpinner.getValue();
+        final int cols = colsSpinner.getValue();
         final boolean isSquare = (rows == cols);
 
-        // Сначала всегда убедимся, что inverseButton правильно скрыта, если не квадратная
         if (!isSquare) {
             inverseButton.setVisible(false);
             inverseButton.setManaged(false);
         }
-        // Если isSquare, видимость inverseButton будет установлена позже
 
         HBox.setHgrow(transposeButton, Priority.NEVER);
         HBox.setHgrow(inverseButton, Priority.NEVER);
@@ -217,112 +212,71 @@ public class MainViewController {
         final double containerWidth = buttonsContainer.getWidth() - buttonsContainer.getPadding().getLeft() - buttonsContainer.getPadding().getRight();
         
         if (isSquare) {
-            // --- Матрица стала/остается квадратной ---
-            
-            // Рассчитываем ширину кнопок для случая, когда их две
             final double availableWidthForTwoButtons = containerWidth - BUTTON_SPACING;
             final double buttonWidth = Math.max(50, availableWidthForTwoButtons / 2.0);
-
             transposeButton.setPrefWidth(buttonWidth);
-            // inverseButton получит такую же ширину, но позже, когда станет видимой
-            // inverseButton.setPrefWidth(buttonWidth); // Можно установить и здесь, не помешает
-
-            // Цель: transposeButton должна плавно вернуться из центра (если была там) налево (к translateX=0),
-            // ЗАТЕМ контейнер выравнивается по правому краю, и появляется inverseButton.
             
-            // Очищаем предыдущий обработчик onFinished, если он был
             transposeButtonAnimator.setOnFinished(null);
 
-            // Если кнопка "Транспонировать" была смещена (т.е. была одна и по центру)
             if (transposeButton.getTranslateX() != 0 || buttonsContainer.getAlignment() == Pos.CENTER_LEFT) {
-                // Анимируем ее возврат к translateX = 0 (в текущем выравнивании контейнера,
-                // которое должно быть CENTER_LEFT, если кнопка была по центру)
-                buttonsContainer.setAlignment(Pos.CENTER_LEFT); // Убедимся, что выравнивание для анимации правильное
+                buttonsContainer.setAlignment(Pos.CENTER_LEFT);
                 transposeButtonAnimator.setToX(0);
-                
                 transposeButtonAnimator.setOnFinished(event -> {
-                    // Этот код выполнится ПОСЛЕ того, как transposeButton вернется к translateX=0
-                    // относительно CENTER_LEFT выравнивания.
-                    
-                    // Теперь меняем выравнивание контейнера и показываем вторую кнопку
                     buttonsContainer.setAlignment(Pos.CENTER_RIGHT);
-                    // transposeButton.setTranslateX(0); // Убедимся, что translateX все еще 0 после смены выравнивания контейнера
-                                                       // Это может быть не нужно, если layoutX меняется правильно.
-                    
-                    inverseButton.setPrefWidth(buttonWidth); // Устанавливаем ширину перед показом
+                    inverseButton.setPrefWidth(buttonWidth);
                     inverseButton.setVisible(true);
                     inverseButton.setManaged(true);
-                    
-                    // Запросить перекомпоновку, чтобы изменения применились
                     buttonsContainer.requestLayout(); 
                     transposeButton.requestLayout();
                     inverseButton.requestLayout();
-
-                    transposeButtonAnimator.setOnFinished(null); // Очищаем
+                    transposeButtonAnimator.setOnFinished(null);
                 });
                 transposeButtonAnimator.play();
             } else {
-                // Кнопка уже на месте (translateX=0) и контейнер уже CENTER_RIGHT (или стал им без анимации)
                 buttonsContainer.setAlignment(Pos.CENTER_RIGHT);
-                transposeButton.setTranslateX(0);
-                
+                // transposeButton.setTranslateX(0); // Уже 0, если сюда попали
                 inverseButton.setPrefWidth(buttonWidth);
                 inverseButton.setVisible(true);
                 inverseButton.setManaged(true);
-
                 buttonsContainer.requestLayout();
                 transposeButton.requestLayout();
                 inverseButton.requestLayout();
             }
-
         } else {
-            // --- Матрица НЕ квадратная ---
-            // inverseButton уже скрыта.
-            // transposeButton должна сместиться в центр.
-            
             double singleButtonPrefWidth = Math.max(150, (containerWidth - BUTTON_SPACING) / 2.0);
             transposeButton.setPrefWidth(singleButtonPrefWidth);
-            
-            buttonsContainer.setAlignment(Pos.CENTER_LEFT); // Для корректного translateX
+            buttonsContainer.setAlignment(Pos.CENTER_LEFT);
             
             double buttonActualWidth = transposeButton.getBoundsInParent().getWidth();
             if (buttonActualWidth == 0) buttonActualWidth = transposeButton.getPrefWidth();
-
             double targetX = (containerWidth / 2.0) - (buttonActualWidth / 2.0);
             
             if (Math.abs(transposeButton.getTranslateX() - targetX) > 0.1) {
-                transposeButtonAnimator.setOnFinished(null); // Очищаем, если был установлен
+                transposeButtonAnimator.setOnFinished(null);
                 transposeButtonAnimator.setToX(targetX);
                 transposeButtonAnimator.play();
             } else {
                  transposeButton.setTranslateX(targetX);
             }
-            buttonsContainer.requestLayout(); // Запросить перекомпоновку
+            buttonsContainer.requestLayout();
             transposeButton.requestLayout();
         }
     }
-
 
     @FXML
     private void handleTransposeAction() {
         System.out.println("Transpose button clicked");
         try {
             double[][] inputData = getMatrixFromInput();
-            if (inputData == null) {
-                // Ошибка уже отображена в getMatrixFromInput
-                return;
-            }
-
+            if (inputData == null) return;
             Matrix matrix = new Matrix(inputData);
             Matrix transposedMatrix = matrix.transpose();
-
-            displayMatrixResult(transposedMatrix.getData(), "Транспонированная матрица:");
-
-        } catch (IllegalArgumentException e) { // От конструктора Matrix
-            resultLabel.setText("Ошибка создания матрицы: " + e.getMessage());
-        } catch (Exception e) { // Общий перехватчик
-            resultLabel.setText("Произошла ошибка при транспонировании: " + e.getMessage());
-            e.printStackTrace(); // Для отладки в консоль
+            displayMatrixResult(transposedMatrix.getData(), "Транспонированная матрица:"); 
+        } catch (IllegalArgumentException e) {
+            showErrorInResultArea("Ошибка создания матрицы: " + e.getMessage());
+        } catch (Exception e) {
+            showErrorInResultArea("Произошла ошибка при транспонировании: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -331,39 +285,40 @@ public class MainViewController {
         System.out.println("Inverse button clicked");
         try {
             double[][] inputData = getMatrixFromInput();
-            if (inputData == null) {
-                // Ошибка уже отображена в getMatrixFromInput
+            if (inputData == null) return;
+            if (rowsSpinner.getValue() != colsSpinner.getValue()) {
+                showErrorInResultArea("Ошибка: Матрица должна быть квадратной для обращения.");
                 return;
             }
-
-            // Проверка на квадратность здесь уже не так критична, т.к. Matrix.inverse() ее выполнит,
-            // но можно оставить для более раннего сообщения пользователю.
-            if (rowsSpinner.getValue() != colsSpinner.getValue()) {
-                resultLabel.setText("Ошибка: Матрица должна быть квадратной для обращения.");
-                return; // Хотя Matrix.inverse() тоже выбросит исключение
-            }
-
             Matrix matrix = new Matrix(inputData);
-            Matrix invertedMatrix = matrix.inverse(); // Может выбросить MatrixOperationException
-
+            Matrix invertedMatrix = matrix.inverse();
             displayMatrixResult(invertedMatrix.getData(), "Обратная матрица:");
-
-        } catch (IllegalArgumentException e) { // От конструктора Matrix
-            resultLabel.setText("Ошибка создания матрицы: " + e.getMessage());
-        } catch (MatrixOperationException e) { // От Matrix.inverse()
-            resultLabel.setText("Ошибка обращения матрицы: " + e.getMessage());
-        } catch (Exception e) { // Общий перехватчик
-            resultLabel.setText("Произошла ошибка при обращении: " + e.getMessage());
-            e.printStackTrace(); // Для отладки в консоль
+        } catch (IllegalArgumentException e) {
+            showErrorInResultArea("Ошибка создания матрицы: " + e.getMessage());
+        } catch (MatrixOperationException e) {
+            showErrorInResultArea("Ошибка обращения матрицы: " + e.getMessage());
+        } catch (Exception e) {
+            showErrorInResultArea("Произошла ошибка при обращении: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private double[][] getMatrixFromInput() {
-        int rows = rowsSpinner.getValue();
-        int cols = colsSpinner.getValue();
-        double[][] matrix = new double[rows][cols];
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
+        int currentRows = rowsSpinner.getValue();
+        int currentCols = colsSpinner.getValue();
+        double[][] matrix = new double[currentRows][currentCols];
+
+        if (matrixTextFields == null || matrixTextFields.size() != currentRows) {
+             showErrorInResultArea("Ошибка: Несоответствие данных для ввода матрицы. Пожалуйста, обновите размер.");
+             return null;
+        }
+
+        for (int i = 0; i < currentRows; i++) {
+            if (matrixTextFields.get(i) == null || matrixTextFields.get(i).size() != currentCols) {
+                showErrorInResultArea("Ошибка: Несоответствие данных для ввода матрицы (строка " + (i+1) + "). Пожалуйста, обновите размер.");
+                return null;
+            }
+            for (int j = 0; j < currentCols; j++) {
                 TextField textField = matrixTextFields.get(i).get(j);
                 String text = textField.getText().trim();
                 if (text.isEmpty() || text.equals("-") || text.equals(".")) {
@@ -372,7 +327,7 @@ public class MainViewController {
                     try {
                         matrix[i][j] = Double.parseDouble(text);
                     } catch (NumberFormatException e) {
-                        resultLabel.setText("Ошибка: Некорректное значение в ячейке [" + (i + 1) + "," + (j + 1) + "]: '" + textField.getText() + "'");
+                        showErrorInResultArea("Ошибка: Некорректное значение в ячейке ввода [" + (i + 1) + "," + (j + 1) + "]: '" + textField.getText() + "'");
                         textField.requestFocus();
                         textField.selectAll();
                         return null;
@@ -383,51 +338,46 @@ public class MainViewController {
         return matrix;
     }
 
-    private void displayMatrixResult(double[][] matrix, String title) {
-        StringBuilder sb = new StringBuilder(title + "\n\n");
-        for (double[] row : matrix) {
-            for (int j = 0; j < row.length; j++) {
-                // Используем String.format для контроля количества знаков после запятой
-                // и выравнивания. %10.3f означает 10 символов всего, 3 после запятой.
-                sb.append(String.format("%10.3f", row[j]));
-                if (j < row.length - 1) {
-                    sb.append("\t"); // Табуляция между элементами
-                }
-            }
-            sb.append("\n");
+    private void displayMatrixResult(double[][] matrixData, String title) {
+        if (resultMatrixGrid == null) return;
+        resultMatrixGrid.getChildren().clear();
+
+        if (matrixData == null || matrixData.length == 0 || (matrixData.length > 0 && matrixData[0].length == 0) ) {
+            Label emptyMsg = new Label(title + ( (matrixData != null && matrixData.length > 0 && matrixData[0].length == 0) ? ": результат - матрица 0 столбцов." : ": результат - пустая матрица." ));
+            emptyMsg.getStyleClass().add("info-label");
+            resultMatrixGrid.add(emptyMsg, 0, 0);
+            GridPane.setColumnSpan(emptyMsg, Math.max(1, colsSpinner.getValue()));
+            GridPane.setHalignment(emptyMsg, HPos.CENTER);
+            return;
         }
-        resultLabel.setText(sb.toString());
-    }
-    
-    // --- Заглушки ---
-    private double[][] mockTranspose(double[][] matrix) {
-        if (matrix == null || matrix.length == 0) return new double[0][0];
-        int rows = matrix.length;
-        int cols = matrix[0].length;
-        double[][] result = new double[cols][rows];
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                result[j][i] = matrix[i][j];
+
+        int resultRows = matrixData.length;
+        int resultCols = matrixData[0].length;
+
+        for (int i = 0; i < resultRows; i++) {
+            for (int j = 0; j < resultCols; j++) {
+                TextField resultField = new TextField();
+                resultField.setText(String.format("%.3f", matrixData[i][j]));
+                resultField.setEditable(false);
+                resultField.setFocusTraversable(false);
+                resultField.getStyleClass().add("result-matrix-cell");
+                resultField.setPrefWidth(60); 
+                resultField.setPrefHeight(35);
+                resultField.setAlignment(Pos.CENTER);
+                resultMatrixGrid.add(resultField, j, i);
             }
         }
-        return result;
     }
 
-    private double[][] mockInverse(double[][] matrix) {
-        if (matrix == null || matrix.length == 0) return new double[0][0];
-        int n = matrix.length;
-        if (n != matrix[0].length) throw new IllegalArgumentException("Матрица не квадратная для обращения.");
-
-        if (n == 1) {
-            if (Math.abs(matrix[0][0]) < 1e-9) throw new ArithmeticException("Определитель равен нулю (1x1).");
-            return new double[][]{{1.0 / matrix[0][0]}};
-        }
-        if (n == 2) {
-            double a = matrix[0][0], b = matrix[0][1], c = matrix[1][0], d = matrix[1][1];
-            double det = a * d - b * c;
-            if (Math.abs(det) < 1e-9) throw new ArithmeticException("Матрица вырождена (определитель равен нулю).");
-            return new double[][]{{d / det, -b / det}, {-c / det, a / det}};
-        }
-        throw new UnsupportedOperationException("Обращение для матриц размером больше 2х2 пока не реализовано (заглушка).");
+    private void showErrorInResultArea(String errorMessage) {
+        if (resultMatrixGrid == null) return;
+        resultMatrixGrid.getChildren().clear();
+        Label errorLabel = new Label(errorMessage);
+        errorLabel.getStyleClass().add("error-label");
+        errorLabel.setWrapText(true);
+        resultMatrixGrid.add(errorLabel, 0, 0); 
+        int colspan = Math.max(1, colsSpinner.getValue());
+        GridPane.setColumnSpan(errorLabel, colspan);
+        GridPane.setHalignment(errorLabel, HPos.CENTER);
     }
 }
