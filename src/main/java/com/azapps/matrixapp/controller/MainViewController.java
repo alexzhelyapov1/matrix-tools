@@ -5,6 +5,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -15,6 +16,8 @@ import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority; // Для HBox.setHgrow
+import javafx.scene.layout.Region;   // Для Region
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -37,9 +40,11 @@ public class MainViewController {
 
     // --- Кнопки операций ---
     // @FXML private AnchorPane buttonsPane; // Больше не нужен AnchorPane как прямой родитель кнопок HBox
-    @FXML private HBox buttonsContainer;  // HBox, содержащий кнопки
+    @FXML private HBox buttonsContainer;
     @FXML private Button transposeButton;
     @FXML private Button inverseButton;
+
+    private TranslateTransition transposeButtonAnimator; // Аниматор для кнопки
 
     // --- Элементы для вывода результата ---
     @FXML private ScrollPane resultScrollPane;
@@ -67,19 +72,32 @@ public class MainViewController {
         
         matrixTextFields = new ArrayList<>();
 
+        // Инициализируем аниматор
+        transposeButtonAnimator = new TranslateTransition(Duration.millis(300), transposeButton);
+        transposeButtonAnimator.setInterpolator(Interpolator.EASE_BOTH); // Плавное начало и конец
+
         // Чтобы buttonsContainer был корректно измерен перед первым вызовом updateButtonStates
-        buttonsContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal.doubleValue() > 0 && oldVal.doubleValue() == 0) { // Запускаем один раз после инициализации размера
-                 updateButtonStates();
-            }
+        // и чтобы кнопки получили начальные размеры
+        Platform.runLater(() -> {
+            // Устанавливаем начальные/предпочтительные размеры для кнопок,
+            // чтобы они не растягивались изначально, если HBox будет их растягивать.
+            // Можно также задать это в FXML через prefWidth/maxWidth или CSS.
+            // Здесь мы делаем так, чтобы они занимали половину места, если обе видны
+            // или фиксированный размер.
+            // Для нашего случая, они будут делить место, если обе видны.
+            // Если только одна, она будет своего размера.
+            
+            // Важно! Сначала вызвать updateMatrixGridAndButtons, чтобы кнопки были созданы
+            // и добавлены на сцену, затем уже можно получить их размеры.
+            updateMatrixGridAndButtons();
         });
-        
-        updateMatrixGridAndButtons(); // Первоначальное создание и настройка
     }
 
     private void updateMatrixGridAndButtons() {
         updateMatrixGrid();
-        updateButtonStates();
+        // Небольшая задержка, чтобы дать JavaFX время на первичную компоновку
+        // перед тем как мы будем опираться на размеры кнопок/контейнера.
+        Platform.runLater(this::updateButtonStates);
     }
 
     private void setupSpinner(Spinner<Integer> spinner, int initialValue, int min, int max) {
@@ -179,65 +197,109 @@ public class MainViewController {
 
     private void updateButtonStates() {
         if (buttonsContainer.getWidth() == 0) {
-            // Если контейнер еще не отрисован и его ширина 0, откладываем обновление.
-            // Это может случиться при первом запуске, слушатель на widthProperty должен это покрыть.
             return;
         }
 
-        int rows = rowsSpinner.getValue();
-        int cols = colsSpinner.getValue();
-        boolean isSquare = (rows == cols);
+        final int rows = rowsSpinner.getValue(); // final для лямбд
+        final int cols = colsSpinner.getValue(); // final для лямбд
+        final boolean isSquare = (rows == cols);
 
-        inverseButton.setVisible(isSquare);
-        inverseButton.setManaged(isSquare);
+        // Сначала всегда убедимся, что inverseButton правильно скрыта, если не квадратная
+        if (!isSquare) {
+            inverseButton.setVisible(false);
+            inverseButton.setManaged(false);
+        }
+        // Если isSquare, видимость inverseButton будет установлена позже
 
-        double containerWidth = buttonsContainer.getWidth() - buttonsContainer.getPadding().getLeft() - buttonsContainer.getPadding().getRight();
-        double targetButtonWidth;
-
+        HBox.setHgrow(transposeButton, Priority.NEVER);
+        HBox.setHgrow(inverseButton, Priority.NEVER);
+        
+        final double containerWidth = buttonsContainer.getWidth() - buttonsContainer.getPadding().getLeft() - buttonsContainer.getPadding().getRight();
+        
         if (isSquare) {
-            // Обе кнопки видны
-            targetButtonWidth = (containerWidth - BUTTON_SPACING) / 2.0;
-            transposeButton.setPrefWidth(targetButtonWidth);
-            inverseButton.setPrefWidth(targetButtonWidth);
-            buttonsContainer.setAlignment(Pos.CENTER_RIGHT); // Выравниваем пару кнопок вправо
+            // --- Матрица стала/остается квадратной ---
+            
+            // Рассчитываем ширину кнопок для случая, когда их две
+            final double availableWidthForTwoButtons = containerWidth - BUTTON_SPACING;
+            final double buttonWidth = Math.max(50, availableWidthForTwoButtons / 2.0);
 
-            // Убираем смещение для кнопки транспонирования, если оно было
-            transposeButton.setTranslateX(0);
+            transposeButton.setPrefWidth(buttonWidth);
+            // inverseButton получит такую же ширину, но позже, когда станет видимой
+            // inverseButton.setPrefWidth(buttonWidth); // Можно установить и здесь, не помешает
+
+            // Цель: transposeButton должна плавно вернуться из центра (если была там) налево (к translateX=0),
+            // ЗАТЕМ контейнер выравнивается по правому краю, и появляется inverseButton.
+            
+            // Очищаем предыдущий обработчик onFinished, если он был
+            transposeButtonAnimator.setOnFinished(null);
+
+            // Если кнопка "Транспонировать" была смещена (т.е. была одна и по центру)
+            if (transposeButton.getTranslateX() != 0 || buttonsContainer.getAlignment() == Pos.CENTER_LEFT) {
+                // Анимируем ее возврат к translateX = 0 (в текущем выравнивании контейнера,
+                // которое должно быть CENTER_LEFT, если кнопка была по центру)
+                buttonsContainer.setAlignment(Pos.CENTER_LEFT); // Убедимся, что выравнивание для анимации правильное
+                transposeButtonAnimator.setToX(0);
+                
+                transposeButtonAnimator.setOnFinished(event -> {
+                    // Этот код выполнится ПОСЛЕ того, как transposeButton вернется к translateX=0
+                    // относительно CENTER_LEFT выравнивания.
+                    
+                    // Теперь меняем выравнивание контейнера и показываем вторую кнопку
+                    buttonsContainer.setAlignment(Pos.CENTER_RIGHT);
+                    // transposeButton.setTranslateX(0); // Убедимся, что translateX все еще 0 после смены выравнивания контейнера
+                                                       // Это может быть не нужно, если layoutX меняется правильно.
+                    
+                    inverseButton.setPrefWidth(buttonWidth); // Устанавливаем ширину перед показом
+                    inverseButton.setVisible(true);
+                    inverseButton.setManaged(true);
+                    
+                    // Запросить перекомпоновку, чтобы изменения применились
+                    buttonsContainer.requestLayout(); 
+                    transposeButton.requestLayout();
+                    inverseButton.requestLayout();
+
+                    transposeButtonAnimator.setOnFinished(null); // Очищаем
+                });
+                transposeButtonAnimator.play();
+            } else {
+                // Кнопка уже на месте (translateX=0) и контейнер уже CENTER_RIGHT (или стал им без анимации)
+                buttonsContainer.setAlignment(Pos.CENTER_RIGHT);
+                transposeButton.setTranslateX(0);
+                
+                inverseButton.setPrefWidth(buttonWidth);
+                inverseButton.setVisible(true);
+                inverseButton.setManaged(true);
+
+                buttonsContainer.requestLayout();
+                transposeButton.requestLayout();
+                inverseButton.requestLayout();
+            }
 
         } else {
-            // Только кнопка транспонирования видна
-            targetButtonWidth = containerWidth; // Занимает всю ширину контейнера (если она одна)
-                                                // или можно задать ей чуть меньшую ширину для красоты
-            // targetButtonWidth = Math.min(containerWidth, 200); // Например, максимальная ширина для одной кнопки
-            transposeButton.setPrefWidth(targetButtonWidth);
+            // --- Матрица НЕ квадратная ---
+            // inverseButton уже скрыта.
+            // transposeButton должна сместиться в центр.
             
-            // Плавное перемещение кнопки "Транспонировать" в центр buttonsContainer
-            // buttonsContainer остается выровненным по правому краю в родительском HBox,
-            // а мы двигаем кнопку внутри него.
-            // buttonsContainer.setAlignment(Pos.CENTER_LEFT); // Чтобы translateX считался от левого края HBox
-            // double buttonCurrentWidth = transposeButton.getBoundsInParent().getWidth(); // Используем актуальную ширину
-            // double targetX = (containerWidth / 2.0) - (buttonCurrentWidth / 2.0) - transposeButton.getLayoutX();
+            double singleButtonPrefWidth = Math.max(150, (containerWidth - BUTTON_SPACING) / 2.0);
+            transposeButton.setPrefWidth(singleButtonPrefWidth);
             
-            // Упрощенный вариант: центрируем HBox, если там только одна кнопка
-            buttonsContainer.setAlignment(Pos.CENTER);
-            transposeButton.setTranslateX(0); // Убедимся, что нет старого смещения
+            buttonsContainer.setAlignment(Pos.CENTER_LEFT); // Для корректного translateX
+            
+            double buttonActualWidth = transposeButton.getBoundsInParent().getWidth();
+            if (buttonActualWidth == 0) buttonActualWidth = transposeButton.getPrefWidth();
+
+            double targetX = (containerWidth / 2.0) - (buttonActualWidth / 2.0);
+            
+            if (Math.abs(transposeButton.getTranslateX() - targetX) > 0.1) {
+                transposeButtonAnimator.setOnFinished(null); // Очищаем, если был установлен
+                transposeButtonAnimator.setToX(targetX);
+                transposeButtonAnimator.play();
+            } else {
+                 transposeButton.setTranslateX(targetX);
+            }
+            buttonsContainer.requestLayout(); // Запросить перекомпоновку
+            transposeButton.requestLayout();
         }
-        
-        // Для плавной анимации изменения ширины и положения
-        // Анимация ширины (может быть сложной для стандартных кнопок, т.к. prefWidth не анимируется напрямую)
-        // Проще анимировать TranslateX
-        // Если мы используем buttonsContainer.setAlignment(Pos.CENTER) для одной кнопки,
-        // то анимация TranslateX не нужна или должна быть 0.
-        // Если же мы хотим, чтобы transposeButton плавно "скользила" в центр контейнера,
-        // когда inverseButton исчезает, а сам buttonsContainer не меняет выравнивание,
-        // то нужен более сложный расчет TranslateX.
-
-        // Давайте попробуем вариант с изменением выравнивания HBox, это проще и часто выглядит хорошо.
-        // Если этого будет недостаточно, реализуем более сложную анимацию TranslateTransition.
-
-        // Повторный вызов для применения ширин перед анимацией (если необходима)
-        transposeButton.requestLayout();
-        if(isSquare) inverseButton.requestLayout();
     }
 
 
