@@ -1,0 +1,101 @@
+/* styles.css */
+
+.root {
+    -fx-font-family: "System"; /* Или другой предпочитаемый шрифт */
+    -fx-font-size: 14px;
+}
+
+.header-box {
+    -fx-background-color: #4A90E2; /* Приятный синий цвет */
+    -fx-padding: 15px;
+}
+
+.header-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.section-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.control-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #444444;
+}
+.control-label-small {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #444444;
+}
+
+.spinner .arrow-button {
+    -fx-padding: 2 5 2 5; /* Уменьшаем отступы кнопок спиннера */
+}
+
+.spinner .text-field {
+     -fx-pref-height: 30px; /* Высота текстового поля спиннера */
+}
+
+
+.action-button {
+    -fx-background-color: #5CB85C; /* Зеленый */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-radius: 5px; /* Скругленные углы */
+    -fx-padding: 10px 15px; /* Отступы внутри кнопки */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 2, 2); /* Легкая тень */
+}
+
+.action-button:hover {
+    -fx-background-color: #4CAF50; /* Темнее при наведении */
+}
+
+.action-button:pressed {
+    -fx-background-color: #45A049; /* Еще темнее при нажатии */
+}
+
+/* Можно добавить стиль для кнопки "Обратить", если хотите другой цвет */
+#inverseButton.action-button { /* ID selector для специфичной кнопки */
+    -fx-background-color: #F0AD4E; /* Оранжевый */
+}
+#inverseButton.action-button:hover {
+    -fx-background-color: #EEA236;
+}
+#inverseButton.action-button:pressed {
+    -fx-background-color: #EC9B2F;
+}
+
+
+.text-field { /* Стиль для обычных текстовых полей в гриде */
+    -fx-pref-height: 35px;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 3px;
+}
+
+.text-field:focused {
+    -fx-border-color: #4A90E2;
+    -fx-effect: dropshadow(gaussian, #4A90E2, 5, 0.1, 0, 0);
+}
+
+
+.result-text {
+    -fx-font-family: "Courier New", monospace;
+    -fx-font-size: 14px;
+    -fx-fill: #333333;
+    -fx-background-color: #f9f9f9;
+    -fx-border-color: #e0e0e0;
+    -fx-padding: 10px;
+}
+
+.scroll-pane {
+    -fx-background-color: transparent; /* Чтобы не было двойных рамок */
+}
+
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
