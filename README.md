@@ -7,5 +7,12 @@
 - jdk 21
 - maven
 
-### How to run
+### How to run app
+```bash
 mvn compile javafx:run
+```
+
+### Run unit tests
+```bash
+mvn test
+```
