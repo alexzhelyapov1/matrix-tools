@@ -20,6 +20,10 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.azapps.matrixapp.model.Matrix;
+import com.azapps.matrixapp.model.MatrixOperationException;
+
+
 public class MainViewController {
 
     // --- Элементы для ввода матрицы ---
@@ -104,17 +108,44 @@ public class MainViewController {
     private void commitSpinnerValue(Spinner<Integer> spinner) {
         try {
             String text = spinner.getEditor().getText();
-            if (text == null || text.isEmpty()) {
-                spinner.getValueFactory().setValue(spinner.getValueFactory().getMin()); // или initialValue
+            
+            // Получаем конкретную фабрику значений
+            SpinnerValueFactory.IntegerSpinnerValueFactory valueFactory = null;
+            if (spinner.getValueFactory() instanceof SpinnerValueFactory.IntegerSpinnerValueFactory) {
+                valueFactory = (SpinnerValueFactory.IntegerSpinnerValueFactory) spinner.getValueFactory();
+            } else {
+                // Если это не IntegerSpinnerValueFactory, то наша логика min/max не сработает.
+                // В этом случае можно просто попытаться установить значение, если оно парсится.
+                // Или выбросить ошибку/залогировать.
+                // Для нашего приложения мы ожидаем IntegerSpinnerValueFactory.
+                if (!text.isEmpty()) spinner.getValueFactory().setValue(Integer.parseInt(text));
+                else spinner.getValueFactory().setValue(spinner.getValue()); // Восстановить, если пусто
                 return;
             }
+
+
+            if (text == null || text.isEmpty()) {
+                // Если поле пустое, устанавливаем минимальное значение
+                spinner.getValueFactory().setValue(valueFactory.getMin()); 
+                return;
+            }
+            
             int value = Integer.parseInt(text);
-            SpinnerValueFactory<Integer> valueFactory = spinner.getValueFactory();
-            if (value < valueFactory.getMin()) value = valueFactory.getMin();
-            else if (value > valueFactory.getMax()) value = valueFactory.getMax();
+            
+            if (value < valueFactory.getMin()) {
+                value = valueFactory.getMin();
+            } else if (value > valueFactory.getMax()) {
+                value = valueFactory.getMax();
+            }
             spinner.getValueFactory().setValue(value);
         } catch (NumberFormatException e) {
-            spinner.getValueFactory().setValue(spinner.getValue()); // Восстановить последнее валидное значение
+            // Если значение невалидно (например, не число), восстанавливаем предыдущее валидное значение
+            spinner.getValueFactory().setValue(spinner.getValue());
+        } catch (ClassCastException e) {
+            // Этого не должно случиться, если мы используем IntegerSpinnerValueFactory,
+            // но проверка instanceof выше должна это предотвратить.
+            System.err.println("Неожиданная ошибка приведения типа SpinnerValueFactory: " + e.getMessage());
+            spinner.getValueFactory().setValue(spinner.getValue()); // Восстановить
         }
     }
 
@@ -214,13 +245,22 @@ public class MainViewController {
     private void handleTransposeAction() {
         System.out.println("Transpose button clicked");
         try {
-            double[][] matrix = getMatrixFromInput();
-            if (matrix == null) return;
-            double[][] transposedMatrix = mockTranspose(matrix);
-            displayMatrixResult(transposedMatrix, "Транспонированная матрица:");
-        } catch (Exception e) {
-            resultLabel.setText("Произошла ошибка: " + e.getMessage());
-            e.printStackTrace();
+            double[][] inputData = getMatrixFromInput();
+            if (inputData == null) {
+                // Ошибка уже отображена в getMatrixFromInput
+                return;
+            }
+
+            Matrix matrix = new Matrix(inputData);
+            Matrix transposedMatrix = matrix.transpose();
+
+            displayMatrixResult(transposedMatrix.getData(), "Транспонированная матрица:");
+
+        } catch (IllegalArgumentException e) { // От конструктора Matrix
+            resultLabel.setText("Ошибка создания матрицы: " + e.getMessage());
+        } catch (Exception e) { // Общий перехватчик
+            resultLabel.setText("Произошла ошибка при транспонировании: " + e.getMessage());
+            e.printStackTrace(); // Для отладки в консоль
         }
     }
 
@@ -228,19 +268,31 @@ public class MainViewController {
     private void handleInverseAction() {
         System.out.println("Inverse button clicked");
         try {
-            double[][] matrix = getMatrixFromInput();
-            if (matrix == null) return;
-            if (rowsSpinner.getValue() != colsSpinner.getValue()) {
-                resultLabel.setText("Ошибка: Матрица должна быть квадратной для обращения.");
+            double[][] inputData = getMatrixFromInput();
+            if (inputData == null) {
+                // Ошибка уже отображена в getMatrixFromInput
                 return;
             }
-            double[][] invertedMatrix = mockInverse(matrix);
-            displayMatrixResult(invertedMatrix, "Обратная матрица:");
-        } catch (ArithmeticException e) {
-            resultLabel.setText("Ошибка обращения: " + e.getMessage());
-        } catch (Exception e) {
-            resultLabel.setText("Произошла ошибка: " + e.getMessage());
-            e.printStackTrace();
+
+            // Проверка на квадратность здесь уже не так критична, т.к. Matrix.inverse() ее выполнит,
+            // но можно оставить для более раннего сообщения пользователю.
+            if (rowsSpinner.getValue() != colsSpinner.getValue()) {
+                resultLabel.setText("Ошибка: Матрица должна быть квадратной для обращения.");
+                return; // Хотя Matrix.inverse() тоже выбросит исключение
+            }
+
+            Matrix matrix = new Matrix(inputData);
+            Matrix invertedMatrix = matrix.inverse(); // Может выбросить MatrixOperationException
+
+            displayMatrixResult(invertedMatrix.getData(), "Обратная матрица:");
+
+        } catch (IllegalArgumentException e) { // От конструктора Matrix
+            resultLabel.setText("Ошибка создания матрицы: " + e.getMessage());
+        } catch (MatrixOperationException e) { // От Matrix.inverse()
+            resultLabel.setText("Ошибка обращения матрицы: " + e.getMessage());
+        } catch (Exception e) { // Общий перехватчик
+            resultLabel.setText("Произошла ошибка при обращении: " + e.getMessage());
+            e.printStackTrace(); // Для отладки в консоль
         }
     }
 
