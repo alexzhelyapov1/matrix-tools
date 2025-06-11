@@ -2,20 +2,18 @@ package com.azapps.matrixapp.model;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
-
 import java.util.Arrays;
 
 public class MatrixTest {
 
-    private static final double DELTA = 1e-9; // Для сравнения double
+    private static final double DELTA = 1e-9;
 
-    // --- Тесты конструкторов ---
     @Test
     void constructor_validDimensions_createsMatrix() {
         Matrix matrix = new Matrix(2, 3);
         assertEquals(2, matrix.getRows());
         assertEquals(3, matrix.getCols());
-        // Проверим, что элементы по умолчанию 0.0
+
         for (int i = 0; i < matrix.getRows(); i++) {
             for (int j = 0; j < matrix.getCols(); j++) {
                 assertEquals(0.0, matrix.getElement(i, j), DELTA);
@@ -53,7 +51,7 @@ public class MatrixTest {
         double[][] emptyData = {};
         assertThrows(IllegalArgumentException.class, () -> new Matrix(emptyData));
         double[][] emptyRowData = {{}};
-        assertThrows(IllegalArgumentException.class, () -> new Matrix(emptyRowData)); // Если строки нулевой длины
+        assertThrows(IllegalArgumentException.class, () -> new Matrix(emptyRowData));
     }
 
     @Test
@@ -62,7 +60,7 @@ public class MatrixTest {
         assertThrows(IllegalArgumentException.class, () -> new Matrix(jaggedData));
     }
 
-    // --- Тесты геттеров/сеттеров ---
+
     @Test
     void getElement_validIndices_returnsElement() {
         double[][] data = {{1, 2}, {3, 4}};
@@ -89,15 +87,13 @@ public class MatrixTest {
         Matrix matrix = new Matrix(initialData);
         double[][] retrievedData = matrix.getData();
 
-        // Изменяем полученный массив
+
         retrievedData[0][0] = 99;
 
-        // Проверяем, что исходная матрица не изменилась
+
         assertEquals(1, matrix.getElement(0, 0), DELTA, "Изменение копии не должно влиять на оригинал");
     }
 
-
-    // --- Тесты транспонирования ---
     @Test
     void transpose_squareMatrix() {
         double[][] data = {{1, 2}, {3, 4}};
@@ -122,7 +118,7 @@ public class MatrixTest {
             assertArrayEquals(expected[i], transposed.getData()[i], DELTA);
         }
     }
-    
+
     @Test
     void transpose_matrix1x1() {
         double[][] data = {{5}};
@@ -134,10 +130,10 @@ public class MatrixTest {
         assertEquals(1, transposed.getCols());
     }
 
-    // --- Тесты обращения ---
+
     @Test
     void inverse_2x2_nonSingularMatrix() throws MatrixOperationException {
-        double[][] data = {{1, 2}, {3, 4}}; // det = -2
+        double[][] data = {{1, 2}, {3, 4}};
         Matrix matrix = new Matrix(data);
         Matrix inverted = matrix.inverse();
         double[][] expected = {{-2, 1}, {1.5, -0.5}};
@@ -148,7 +144,7 @@ public class MatrixTest {
 
     @Test
     void inverse_3x3_nonSingularMatrix() throws MatrixOperationException {
-        double[][] data = {{2, -1, 0}, {-1, 2, -1}, {0, -1, 2}}; // det = 4
+        double[][] data = {{2, -1, 0}, {-1, 2, -1}, {0, -1, 2}};
         Matrix matrix = new Matrix(data);
         Matrix inverted = matrix.inverse();
         double[][] expected = {{0.75, 0.5, 0.25}, {0.5, 1.0, 0.5}, {0.25, 0.5, 0.75}};
@@ -167,7 +163,7 @@ public class MatrixTest {
             assertArrayEquals(expected[i], inverted.getData()[i], DELTA);
         }
     }
-    
+
     @Test
     void inverse_matrix1x1_nonZero() throws MatrixOperationException {
         double[][] data = {{5}};
@@ -193,12 +189,12 @@ public class MatrixTest {
 
     @Test
     void inverse_singularMatrix_throwsMatrixOperationException() {
-        double[][] data = {{1, 2}, {2, 4}}; // det = 0
+        double[][] data = {{1, 2}, {2, 4}};
         Matrix matrix = new Matrix(data);
         assertThrows(MatrixOperationException.class, matrix::inverse);
     }
-    
-    // --- Тесты определителя (опционально, если он важен сам по себе) ---
+
+
     @Test
     void determinant_2x2_nonSingular() throws MatrixOperationException {
         double[][] data = {{1, 2}, {3, 4}};

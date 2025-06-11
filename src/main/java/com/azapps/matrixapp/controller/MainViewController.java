@@ -17,8 +17,8 @@ import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority; // Для HBox.setHgrow
-import javafx.scene.layout.Region;   // Для Region
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 import javafx.scene.Node;
 import javafx.geometry.HPos;
@@ -31,33 +31,25 @@ import com.azapps.matrixapp.model.MatrixOperationException;
 
 
 public class MainViewController {
-
-    // --- Элементы для ввода матрицы ---
     @FXML private ScrollPane matrixScrollPane;
     @FXML private GridPane matrixInputGrid;
-
-    // --- Элементы для задания размера ---
-    @FXML private HBox sizeControlBox; // Контейнер для элементов управления размером
+    @FXML private HBox sizeControlBox;
     @FXML private Spinner<Integer> rowsSpinner;
     @FXML private Spinner<Integer> colsSpinner;
-
-    // --- Кнопки операций ---
-    // @FXML private AnchorPane buttonsPane; // Больше не нужен AnchorPane как прямой родитель кнопок HBox
     @FXML private HBox buttonsContainer;
     @FXML private Button transposeButton;
     @FXML private Button inverseButton;
 
-    private TranslateTransition transposeButtonAnimator; // Аниматор для кнопки
+    private TranslateTransition transposeButtonAnimator;
 
-    // --- Элементы для вывода результата ---
-    @FXML private ScrollPane resultMatrixScrollPane; // Новая ссылка на ScrollPane для результата
-    @FXML private GridPane resultMatrixGrid;        // Новая ссылка на GridPane для результата
+    @FXML private ScrollPane resultMatrixScrollPane;
+    @FXML private GridPane resultMatrixGrid;
 
     private List<List<TextField>> matrixTextFields;
 
     private static final int MAX_DIMENSION = 10;
     private static final int MIN_DIMENSION = 1;
-    private static final double BUTTON_SPACING = 10.0; // Расстояние между кнопками в HBox
+    private static final double BUTTON_SPACING = 10.0;
 
     @FXML
     public void initialize() {
@@ -72,7 +64,7 @@ public class MainViewController {
         colsSpinner.valueProperty().addListener((obs, oldValue, newValue) -> {
             if (newValue != null) updateMatrixGridAndButtons();
         });
-        
+
         matrixTextFields = new ArrayList<>();
         transposeButtonAnimator = new TranslateTransition(Duration.millis(300), transposeButton);
         transposeButtonAnimator.setInterpolator(Interpolator.EASE_BOTH);
@@ -105,7 +97,7 @@ public class MainViewController {
         });
         spinner.getEditor().setOnAction(event -> commitSpinnerValue(spinner));
     }
-    
+
     private void commitSpinnerValue(Spinner<Integer> spinner) {
         try {
             String text = spinner.getEditor().getText();
@@ -119,12 +111,12 @@ public class MainViewController {
             }
 
             if (text == null || text.isEmpty()) {
-                spinner.getValueFactory().setValue(valueFactory.getMin()); 
+                spinner.getValueFactory().setValue(valueFactory.getMin());
                 return;
             }
-            
+
             int value = Integer.parseInt(text);
-            
+
             if (value < valueFactory.getMin()) value = valueFactory.getMin();
             else if (value > valueFactory.getMax()) value = valueFactory.getMax();
             spinner.getValueFactory().setValue(value);
@@ -171,11 +163,11 @@ public class MainViewController {
         for (int i = 0; i < cols; i++) {
             for (int j = 0; j < rows; j++) {
                 TextField resultField = new TextField();
-                resultField.setPromptText("-"); 
+                resultField.setPromptText("-");
                 resultField.setEditable(false);
                 resultField.setFocusTraversable(false);
                 resultField.getStyleClass().add("result-matrix-cell");
-                resultField.setPrefWidth(60); 
+                resultField.setPrefWidth(60);
                 resultField.setPrefHeight(35);
                 resultField.setAlignment(Pos.CENTER);
                 resultMatrixGrid.add(resultField, j, i);
@@ -183,19 +175,15 @@ public class MainViewController {
         }
     }
 
-    // Метод clearResultMatrixGrid() был удален, т.к. его функциональность
-    // покрывается getChildren().clear() в других методах.
-
     private void updateButtonStates() {
-        if (buttonsContainer.getWidth() == 0 && buttonsContainer.isVisible()) { 
-            // Добавил isVisible(), чтобы не пытаться обновить, если контейнер скрыт при инициализации
-            Platform.runLater(this::updateButtonStates); // Попробовать обновить позже, если ширина 0
+        if (buttonsContainer.getWidth() == 0 && buttonsContainer.isVisible()) {
+
+            Platform.runLater(this::updateButtonStates);
             return;
         }
         if (buttonsContainer.getWidth() == 0 && !buttonsContainer.isVisible()) {
-            return; // Если невидимый и ширина 0, ничего не делаем
+            return;
         }
-
 
         final int rows = rowsSpinner.getValue();
         final int cols = colsSpinner.getValue();
@@ -208,14 +196,14 @@ public class MainViewController {
 
         HBox.setHgrow(transposeButton, Priority.NEVER);
         HBox.setHgrow(inverseButton, Priority.NEVER);
-        
+
         final double containerWidth = buttonsContainer.getWidth() - buttonsContainer.getPadding().getLeft() - buttonsContainer.getPadding().getRight();
-        
+
         if (isSquare) {
             final double availableWidthForTwoButtons = containerWidth - BUTTON_SPACING;
             final double buttonWidth = Math.max(50, availableWidthForTwoButtons / 2.0);
             transposeButton.setPrefWidth(buttonWidth);
-            
+
             transposeButtonAnimator.setOnFinished(null);
 
             if (transposeButton.getTranslateX() != 0 || buttonsContainer.getAlignment() == Pos.CENTER_LEFT) {
@@ -226,7 +214,7 @@ public class MainViewController {
                     inverseButton.setPrefWidth(buttonWidth);
                     inverseButton.setVisible(true);
                     inverseButton.setManaged(true);
-                    buttonsContainer.requestLayout(); 
+                    buttonsContainer.requestLayout();
                     transposeButton.requestLayout();
                     inverseButton.requestLayout();
                     transposeButtonAnimator.setOnFinished(null);
@@ -234,7 +222,7 @@ public class MainViewController {
                 transposeButtonAnimator.play();
             } else {
                 buttonsContainer.setAlignment(Pos.CENTER_RIGHT);
-                // transposeButton.setTranslateX(0); // Уже 0, если сюда попали
+
                 inverseButton.setPrefWidth(buttonWidth);
                 inverseButton.setVisible(true);
                 inverseButton.setManaged(true);
@@ -246,11 +234,11 @@ public class MainViewController {
             double singleButtonPrefWidth = Math.max(150, (containerWidth - BUTTON_SPACING) / 2.0);
             transposeButton.setPrefWidth(singleButtonPrefWidth);
             buttonsContainer.setAlignment(Pos.CENTER_LEFT);
-            
+
             double buttonActualWidth = transposeButton.getBoundsInParent().getWidth();
             if (buttonActualWidth == 0) buttonActualWidth = transposeButton.getPrefWidth();
             double targetX = (containerWidth / 2.0) - (buttonActualWidth / 2.0);
-            
+
             if (Math.abs(transposeButton.getTranslateX() - targetX) > 0.1) {
                 transposeButtonAnimator.setOnFinished(null);
                 transposeButtonAnimator.setToX(targetX);
@@ -271,7 +259,7 @@ public class MainViewController {
             if (inputData == null) return;
             Matrix matrix = new Matrix(inputData);
             Matrix transposedMatrix = matrix.transpose();
-            displayMatrixResult(transposedMatrix.getData(), "Транспонированная матрица:"); 
+            displayMatrixResult(transposedMatrix.getData(), "Транспонированная матрица:");
         } catch (IllegalArgumentException e) {
             showErrorInResultArea("Ошибка создания матрицы: " + e.getMessage());
         } catch (Exception e) {
@@ -361,7 +349,7 @@ public class MainViewController {
                 resultField.setEditable(false);
                 resultField.setFocusTraversable(false);
                 resultField.getStyleClass().add("result-matrix-cell");
-                resultField.setPrefWidth(60); 
+                resultField.setPrefWidth(60);
                 resultField.setPrefHeight(35);
                 resultField.setAlignment(Pos.CENTER);
                 resultMatrixGrid.add(resultField, j, i);
@@ -375,7 +363,7 @@ public class MainViewController {
         Label errorLabel = new Label(errorMessage);
         errorLabel.getStyleClass().add("error-label");
         errorLabel.setWrapText(true);
-        resultMatrixGrid.add(errorLabel, 0, 0); 
+        resultMatrixGrid.add(errorLabel, 0, 0);
         int colspan = Math.max(1, colsSpinner.getValue());
         GridPane.setColumnSpan(errorLabel, colspan);
         GridPane.setHalignment(errorLabel, HPos.CENTER);

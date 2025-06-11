@@ -17,11 +17,11 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.azapps.matrixapp.controller.MainViewController"
             prefHeight="700.0" prefWidth="900.0"
-            stylesheets="@../css/styles.css"> <!-- Подключаем CSS файл -->
+            stylesheets="@../css/styles.css">
 
     <top>
-        <VBox alignment="CENTER" spacing="10" styleClass="header-box"> <!-- Используем styleClass -->
-            <Label text="Калькулятор Матриц" styleClass="header-label"/> <!-- Используем styleClass -->
+        <VBox alignment="CENTER" spacing="10" styleClass="header-box">
+            <Label text="Калькулятор Матриц" styleClass="header-label"/>
         </VBox>
     </top>
 
@@ -44,13 +44,11 @@
                 </content>
             </ScrollPane>
 
-            <!-- Панель управления: размеры и кнопки -->
             <HBox spacing="20" alignment="CENTER_LEFT">
                 <padding>
                     <Insets top="10"/>
                 </padding>
 
-                <!-- Секция задания размера (фиксированная ширина) -->
                 <HBox fx:id="sizeControlBox" spacing="5" alignment="CENTER_LEFT" prefWidth="250" minWidth="250" maxWidth="250">
                     <Label text="Размер матрицы:" styleClass="control-label"/>
                     <Spinner fx:id="rowsSpinner" editable="true" min="1" max="10" initialValue="2" prefWidth="70"/>
@@ -58,13 +56,10 @@
                     <Spinner fx:id="colsSpinner" editable="true" min="1" max="10" initialValue="2" prefWidth="70"/>
                 </HBox>
 
-                <!-- Распорка, чтобы кнопки были справа -->
                 <Region HBox.hgrow="ALWAYS"/>
 
-                <!-- Контейнер для кнопок (фиксированная ширина справа) -->
                 <HBox fx:id="buttonsContainer" spacing="10" alignment="CENTER_RIGHT"
                       prefWidth="350" minWidth="350" maxWidth="350">
-                    <!-- Кнопки будут иметь одинаковую предпочтительную ширину и расти, если нужно -->
                     <Button fx:id="transposeButton" text="Транспонировать" onAction="#handleTransposeAction"
                             prefHeight="40" styleClass="action-button"/>
                     <Button fx:id="inverseButton" text="Обратить" onAction="#handleInverseAction"
@@ -74,13 +69,12 @@
 
             <Label text="Результат:" styleClass="section-label" style="-fx-padding: 10 0 0 0;"/>
             <ScrollPane fx:id="resultMatrixScrollPane" fitToWidth="true" fitToHeight="true" VBox.vgrow="ALWAYS"
-                        minHeight="100" prefHeight="200" styleClass="scroll-pane"> <!-- Добавим стиль, если нужно -->
+                        minHeight="100" prefHeight="200" styleClass="scroll-pane">
                 <content>
                     <GridPane fx:id="resultMatrixGrid" hgap="5" vgap="5" alignment="CENTER">
                         <padding>
                             <Insets top="10" right="10" bottom="10" left="10"/>
                         </padding>
-                        <!-- Ячейки для вывода результата будут добавляться сюда программно -->
                     </GridPane>
                 </content>
             </ScrollPane>

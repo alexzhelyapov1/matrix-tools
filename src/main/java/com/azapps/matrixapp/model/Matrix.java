@@ -1,5 +1,4 @@
 package com.azapps.matrixapp.model;
-
 import java.util.Arrays;
 
 public class Matrix {
@@ -54,7 +53,7 @@ public class Matrix {
     }
 
     public double[][] getData() {
-        // Возвращаем копию, чтобы предотвратить внешнее изменение внутреннего состояния
+
         double[][] copy = new double[rows][cols];
         for (int i = 0; i < rows; i++) {
             System.arraycopy(data[i], 0, copy[i], 0, cols);
@@ -62,12 +61,6 @@ public class Matrix {
         return copy;
     }
 
-    // --- Операции над матрицами ---
-
-    /**
-     * Транспонирует текущую матрицу.
-     * @return Новая матрица, являющаяся транспонированной версией текущей.
-     */
     public Matrix transpose() {
         Matrix result = new Matrix(cols, rows);
         for (int i = 0; i < rows; i++) {
@@ -78,12 +71,6 @@ public class Matrix {
         return result;
     }
 
-    /**
-     * Обращает текущую матрицу (если она квадратная и невырожденная).
-     * Использует метод Гаусса-Жордана.
-     * @return Новая матрица, являющаяся обратной к текущей.
-     * @throws MatrixOperationException если матрица не квадратная или вырожденная.
-     */
     public Matrix inverse() throws MatrixOperationException {
         if (rows != cols) {
             throw new MatrixOperationException("Матрица должна быть квадратной для нахождения обратной.");
@@ -92,17 +79,15 @@ public class Matrix {
         int n = rows;
         double[][] augmentedMatrix = new double[n][2 * n];
 
-        // Создаем расширенную матрицу [A | I]
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 augmentedMatrix[i][j] = data[i][j];
             }
-            augmentedMatrix[i][i + n] = 1; // Единичная матрица справа
+            augmentedMatrix[i][i + n] = 1;
         }
 
-        // Прямой ход метода Гаусса (приведение к верхнетреугольному виду)
         for (int i = 0; i < n; i++) {
-            // Поиск ведущего элемента (максимального по модулю в текущем столбце) для устойчивости
+
             int maxRow = i;
             for (int k = i + 1; k < n; k++) {
                 if (Math.abs(augmentedMatrix[k][i]) > Math.abs(augmentedMatrix[maxRow][i])) {
@@ -110,23 +95,19 @@ public class Matrix {
                 }
             }
 
-            // Обмен строк, если необходимо
             double[] temp = augmentedMatrix[i];
             augmentedMatrix[i] = augmentedMatrix[maxRow];
             augmentedMatrix[maxRow] = temp;
 
-            // Проверка на вырожденность
-            if (Math.abs(augmentedMatrix[i][i]) < 1e-10) { // 1e-10 - малая величина для сравнения с нулем
+            if (Math.abs(augmentedMatrix[i][i]) < 1e-10) {
                 throw new MatrixOperationException("Матрица вырождена (определитель равен нулю), обратной матрицы не существует.");
             }
 
-            // Нормализация текущей строки (ведущий элемент равен 1)
             double pivot = augmentedMatrix[i][i];
             for (int j = i; j < 2 * n; j++) {
                 augmentedMatrix[i][j] /= pivot;
             }
 
-            // Обнуление элементов под ведущим элементом
             for (int k = 0; k < n; k++) {
                 if (k != i) {
                     double factor = augmentedMatrix[k][i];
@@ -137,7 +118,6 @@ public class Matrix {
             }
         }
 
-        // Извлечение обратной матрицы (правая часть расширенной матрицы)
         double[][] inverseData = new double[n][n];
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -147,16 +127,6 @@ public class Matrix {
         return new Matrix(inverseData);
     }
 
-
-    /**
-     * Вычисляет определитель квадратной матрицы.
-     * Использует разложение по первой строке (рекурсивный метод).
-     * Может быть неэффективен для больших матриц.
-     * Для более эффективного вычисления определителя при обращении лучше использовать информацию,
-     * полученную в ходе метода Гаусса.
-     * @return Определитель матрицы.
-     * @throws MatrixOperationException если матрица не квадратная.
-     */
     public double determinant() throws MatrixOperationException {
         if (rows != cols) {
             throw new MatrixOperationException("Определитель можно вычислить только для квадратной матрицы.");
@@ -180,7 +150,7 @@ public class Matrix {
         return det;
     }
 
-    // Вспомогательный метод для получения минора (подматрицы)
+
     private double[][] getSubmatrix(double[][] matrixData, int excluding_row, int excluding_col) {
         int n = matrixData.length;
         double[][] submatrix = new double[n - 1][n - 1];
@@ -201,7 +171,6 @@ public class Matrix {
         }
         return submatrix;
     }
-
 
     @Override
     public String toString() {

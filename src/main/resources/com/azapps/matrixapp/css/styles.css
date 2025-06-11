@@ -1,12 +1,12 @@
 /* styles.css */
 
 .root {
-    -fx-font-family: "System"; /* Или другой предпочитаемый шрифт */
+    -fx-font-family: "System";
     -fx-font-size: 14px;
 }
 
 .header-box {
-    -fx-background-color: #4A90E2; /* Приятный синий цвет */
+    -fx-background-color: #4A90E2;
     -fx-padding: 15px;
 }
 
@@ -33,22 +33,22 @@
 }
 
 .spinner .arrow-button {
-    -fx-padding: 2 5 2 5; /* Уменьшаем отступы кнопок спиннера */
+    -fx-padding: 2 5 2 5;
 }
 
 .spinner .text-field {
-     -fx-pref-height: 30px; /* Высота текстового поля спиннера */
+     -fx-pref-height: 30px;
 }
 
 
 .action-button {
-    -fx-background-color: #5CB85C; /* Зеленый */
+    -fx-background-color: #5CB85C;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-font-size: 14px;
-    -fx-background-radius: 5px; /* Скругленные углы */
-    -fx-padding: 10px 15px; /* Отступы внутри кнопки */
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 2, 2); /* Легкая тень */
+    -fx-background-radius: 5px;
+    -fx-padding: 10px 15px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 2, 2);
 }
 
 .action-button:hover {
@@ -56,12 +56,11 @@
 }
 
 .action-button:pressed {
-    -fx-background-color: #45A049; /* Еще темнее при нажатии */
+    -fx-background-color: #45A049;
 }
 
-/* Можно добавить стиль для кнопки "Обратить", если хотите другой цвет */
-#inverseButton.action-button { /* ID selector для специфичной кнопки */
-    -fx-background-color: #F0AD4E; /* Оранжевый */
+#inverseButton.action-button {
+    -fx-background-color: #F0AD4E;
 }
 #inverseButton.action-button:hover {
     -fx-background-color: #EEA236;
@@ -71,7 +70,7 @@
 }
 
 
-.text-field { /* Стиль для обычных текстовых полей в гриде */
+.text-field {
     -fx-pref-height: 35px;
     -fx-border-color: #cccccc;
     -fx-border-radius: 3px;
@@ -93,7 +92,7 @@
 }
 
 .scroll-pane {
-    -fx-background-color: transparent; /* Чтобы не было двойных рамок */
+    -fx-background-color: transparent;
 }
 
 .scroll-pane .viewport {
@@ -101,10 +100,9 @@
 }
 
 .result-matrix-cell {
-    -fx-background-color: #f0f0f0; /* Слегка серый фон для нередактируемых полей */
+    -fx-background-color: #f0f0f0;
     -fx-border-color: #d0d0d0;
     -fx-border-radius: 3px;
-    /* Можно убрать эффект фокуса, так как они нередактируемы */
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
